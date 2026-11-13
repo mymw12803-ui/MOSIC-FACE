@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تغطية الوجوه في الفيديو</title>
+<style>
+:root{
+  --bg:#f5f3ee;--card:#fff;--ink:#1d2a24;--mute:#6b766f;--line:#e3dfd5;
+  --accent:#0f6a4a;--accent-ink:#fff;--soft:#e8f2ec;--danger:#b3261e;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121714;--card:#1b231f;--ink:#e8efe9;--mute:#93a198;--line:#2c3832;--accent:#3cb883;--accent-ink:#06150e;--soft:#223229;--danger:#ff8a80}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Segoe UI",Tahoma,system-ui,sans-serif}
+header{padding:20px 24px 4px}
+h1{margin:0;font-size:22px}
+header p{margin:2px 0 0;color:var(--mute)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;padding:16px 24px 40px;max-width:1280px;margin:auto}
+@media(max-width:900px){main{grid-template-columns:1fr;padding:12px 16px 40px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.stage{display:flex;flex-direction:column;gap:12px}
+#view{position:relative;background:#00000010;border-radius:10px;min-height:320px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#view img,#view video{max-width:100%;max-height:72vh;display:block;border-radius:6px}
+#drop{border:2px dashed var(--line);border-radius:12px;padding:48px 20px;text-align:center;color:var(--mute);cursor:pointer;width:100%}
+#drop:hover,#drop.over{border-color:var(--accent);background:var(--soft)}
+#drop b{color:var(--ink);display:block;font-size:17px;margin-bottom:4px}
+#warn{display:none;color:var(--danger);font-size:13px;margin:0}
+.row{display:flex;align-items:center;gap:10px}
+.row input[type=range]{flex:1}
+.panel h3{margin:0 0 10px;font-size:14px;color:var(--mute);font-weight:600}
+.panel+.panel{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.seg span{display:block;text-align:center;padding:8px 6px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:13px}
+.seg input:checked+span{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.field{display:grid;grid-template-columns:96px 1fr 38px;align-items:center;gap:8px;margin:8px 0;font-size:13px}
+.field output{color:var(--mute);text-align:left;direction:ltr;font-variant-numeric:tabular-nums}
+input[type=range]{accent-color:var(--accent)}
+input[type=color]{width:44px;height:30px;border:1px solid var(--line);border-radius:8px;background:none;padding:2px}
+.chk{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:14px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;width:100%;padding:12px}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#bar{height:10px;border-radius:6px;background:var(--soft);overflow:hidden;margin-top:10px;display:none}
+#bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+#status{font-size:13px;color:var(--mute);margin-top:6px;min-height:20px}
+#dl{display:none;margin-top:10px;text-align:center}
+#dl a{display:inline-block;background:var(--soft);color:var(--ink);padding:10px 16px;border-radius:10px;text-decoration:none;font-weight:600;border:1px solid var(--accent)}
+.stamps{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.stamps button{height:44px;padding:4px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:8px}
+.stamps button img{max-width:100%;max-height:100%}
+.stamps button[aria-pressed=true]{outline:2px solid var(--accent);border-color:var(--accent)}
+.stamps button.none{font-size:12px;background:var(--card)}
+.hint{font-size:12px;color:var(--mute);margin:4px 0 0}
+.meta{font-size:12px;color:var(--mute)}
+</style>
+</head>
+<body>
+<header>
+  <h1>تغطية الوجوه في الفيديو</h1>
+  <p>تتبّع بنقاط الوجه + تنعيم OneEuro لمنع الاهتزاز — كل المعالجة محلية على جهازك.</p>
+</header>
+<main>
+  <section class="card stage">
+    <div id="view">
+      <div id="drop" tabindex="0" role="button" aria-label="رفع فيديو">
+        <b>اسحب الفيديو هنا أو اضغط للاختيار</b>
+        MP4 / MOV / WebM
+      </div>
+    </div>
+    <input id="file" type="file" accept="video/*" hidden>
+    <div id="scrub" style="display:none">
+      <div class="row"><span class="meta" id="tcur">0.0s</span>
+        <input id="t" type="range" min="0" max="1" step="0.04" value="0" aria-label="الإطار المعاين">
+        <span class="meta" id="tmax"></span></div>
+      <p class="meta" id="info"></p>
+      <p id="warn">لم يُكتشف وجه في هذا الإطار — جرّب إطاراً آخر (الوجوه الصغيرة تُكتشف تلقائياً، لكن الوجه المحجوب بالكامل لا يمكن تتبعه).</p>
+    </div>
+  </section>
+
+  <aside class="card panel-wrap">
+    <div class="panel">
+      <h3>شكل التغطية</h3>
+      <div class="seg" id="mode">
+        <label><input type="radio" name="mode" value="mid" checked><span>وجه أوسط</span></label>
+        <label><input type="radio" name="mode" value="oval"><span>وجه كامل</span></label>
+        <label><input type="radio" name="mode" value="eyes"><span>شريط العينين</span></label>
+      </div>
+      <div class="seg" id="edge" style="margin-top:8px">
+        <label><input type="radio" name="edge" value="soft" checked><span>حواف ناعمة</span></label>
+        <label><input type="radio" name="edge" value="brush"><span>حواف فرشاة</span></label>
+      </div>
+      <div class="field"><span>العرض</span><input type="range" id="width" min="50" max="160" value="100"><output></output></div>
+      <div class="field"><span>الارتفاع</span><input type="range" id="height" min="50" max="160" value="100"><output></output></div>
+      <div class="field"><span>إزاحة رأسية</span><input type="range" id="offset_y" min="-30" max="30" value="0"><output></output></div>
+      <div class="field"><span>نعومة الحواف</span><input type="range" id="feather" min="0" max="100" value="25"><output></output></div>
+      <div class="field"><span>التعتيم</span><input type="range" id="opacity" min="20" max="100" value="100"><output></output></div>
+    </div>
+
+    <div class="panel">
+      <h3>أختام جاهزة (فرشاة ملوّنة)</h3>
+      <div id="stamps" class="stamps"></div>
+      <label class="chk"><input type="checkbox" id="stamp_tint"> تلوين الختم بلون التعبئة (حسب «التلوين» أدناه)</label>
+    </div>
+
+    <div class="panel">
+      <h3>التلوين</h3>
+      <div class="seg" id="fill">
+        <label><input type="radio" name="fill" value="auto" checked><span>مطابقة الحجاب</span></label>
+        <label><input type="radio" name="fill" value="manual"><span>لون يدوي</span></label>
+        <label><input type="radio" name="fill" value="blur"><span>تمويه</span></label>
+        <label><input type="radio" name="fill" value="pixel"><span>بكسلة</span></label>
+      </div>
+      <div class="row" id="colorRow" style="margin-top:10px;display:none"><span>اللون</span><input type="color" id="color" value="#0b5a3c"></div>
+      <div class="field" id="blurRow" style="display:none"><span>قوة التمويه</span><input type="range" id="blur" min="0" max="100" value="60"><output></output></div>
+    </div>
+
+    <div class="panel">
+      <h3>التتبّع</h3>
+      <div class="field"><span>تنعيم الحركة</span><input type="range" id="smoothing" min="0" max="100" value="60"><output></output></div>
+      <div class="field"><span>تثبيت عند الفقدان</span><input type="range" id="max_gap" min="0" max="120" step="3" value="15"><output></output></div>
+      <p class="hint">عدد الإطارات التي يبقى فيها القناع ثابتاً/مستكمَلاً عند ضياع الوجه لحظياً.</p>
+      <label class="chk"><input type="checkbox" id="hands"> حماية اليد (تظهر فوق القناع)</label>
+    </div>
+
+    <div class="panel">
+      <button class="primary" id="go" disabled>تصدير الفيديو</button>
+      <div id="bar"><i></i></div>
+      <div id="status"></div>
+      <div id="dl"><a id="dla" href="#" download="covered.mp4">⬇ تنزيل الفيديو</a></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const state = {vid:null, job:null, stamp:''};
+const ids = ['width','height','offset_y','feather','opacity','blur','smoothing','max_gap'];
+
+function settings(){
+  const g = n => document.querySelector(`input[name=${n}]:checked`).value;
+  const s = {mode:g('mode'), edge:g('edge'), fill:g('fill'), color:$('#color').value,
+             hands:$('#hands').checked, stamp:state.stamp, stamp_tint:$('#stamp_tint').checked};
+  ids.forEach(i => s[i] = +$('#'+i).value);
+  return s;
+}
+function save(){ try{localStorage.setItem('fc',JSON.stringify(settings()))}catch(e){} }
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem('fc')||'null'); if(!s) return;
+    ['mode','edge','fill'].forEach(n=>{const el=document.querySelector(`input[name=${n}][value="${s[n]}"]`); if(el) el.checked=true;});
+    if(s.color) $('#color').value=s.color;
+    $('#hands').checked=!!s.hands; $('#stamp_tint').checked=!!s.stamp_tint; state.stamp=s.stamp||'';
+    ids.forEach(i=>{ if(s[i]!=null) $('#'+i).value=s[i]; });
+  }catch(e){}
+}
+function sync(){
+  document.querySelectorAll('.field').forEach(f=>{const r=f.querySelector('input'),o=f.querySelector('output'); if(r&&o) o.textContent=r.value;});
+  const f = settings().fill;
+  $('#colorRow').style.display = f==='manual' ? 'flex':'none';
+  $('#blurRow').style.display = (f==='blur'||f==='pixel') ? 'grid':'none';
+}
+
+let timer=null, seq=0;
+function schedule(){ sync(); save(); clearTimeout(timer); timer=setTimeout(preview,120); }
+async function preview(){
+  if(!state.vid) return;
+  const my=++seq;
+  try{
+    const r = await fetch('/api/preview',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:state.vid,t:+$('#t').value,settings:settings()})});
+    if(!r.ok) throw new Error(await r.text());
+    const found = r.headers.get('X-Face-Found')==='1';
+    const url = URL.createObjectURL(await r.blob());
+    if(my!==seq) return;
+    $('#warn').style.display = found?'none':'block';
+    let img = $('#view img');
+    if(!img){ $('#view').innerHTML=''; img=new Image(); $('#view').appendChild(img); }
+    const old=img.src; img.src=url; if(old.startsWith('blob:')) setTimeout(()=>URL.revokeObjectURL(old),500);
+  }catch(e){ $('#status').textContent='خطأ في المعاينة: '+e.message; }
+}
+
+async function upload(file){
+  $('#status').textContent='جارٍ الرفع…'; $('#dl').style.display='none';
+  const fd=new FormData(); fd.append('file',file);
+  const r=await fetch('/api/upload',{method:'POST',body:fd});
+  if(!r.ok){ $('#status').textContent='تعذّر رفع الملف: '+(await r.text()); return; }
+  const m=await r.json(); state.vid=m.id;
+  $('#t').max=Math.max(0,m.duration-0.05); $('#t').value=0;
+  $('#tmax').textContent=m.duration.toFixed(1)+'s';
+  $('#info').textContent=`${m.name} — ${m.width}×${m.height} — ${m.fps.toFixed(2)} fps — ${m.frames} إطار`;
+  $('#scrub').style.display='block'; $('#go').disabled=false; $('#status').textContent='';
+  $('#view').innerHTML=''; preview();
+}
+
+const drop=$('#drop');
+drop.onclick=()=>$('#file').click();
+drop.onkeydown=e=>{ if(e.key==='Enter'||e.key===' ') $('#file').click(); };
+$('#file').onchange=e=>e.target.files[0]&&upload(e.target.files[0]);
+['dragover','dragenter'].forEach(ev=>$('#view').addEventListener(ev,e=>{e.preventDefault(); drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>$('#view').addEventListener(ev,e=>{e.preventDefault(); drop.classList.remove('over');}));
+$('#view').addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) upload(f); });
+
+$('#t').oninput=()=>{ $('#tcur').textContent=(+$('#t').value).toFixed(1)+'s'; schedule(); };
+document.querySelectorAll('aside input').forEach(el=>el.addEventListener('input',schedule));
+
+$('#go').onclick=async()=>{
+  if(state.job){ await fetch('/api/cancel/'+state.job,{method:'POST'}); return; }
+  $('#dl').style.display='none';
+  const r=await fetch('/api/process',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:state.vid,settings:settings()})});
+  if(!r.ok){ $('#status').textContent='تعذّر البدء'; return; }
+  state.job=(await r.json()).job;
+  $('#go').textContent='إلغاء'; $('#bar').style.display='block';
+  const t0=Date.now();
+  const poll=async()=>{
+    const p=await (await fetch('/api/progress/'+state.job)).json();
+    $('#bar i').style.width=p.pct+'%';
+    const el=(Date.now()-t0)/1000, eta=p.pct>3?el*(100-p.pct)/p.pct:null;
+    $('#status').textContent=`${p.stage} — ${p.pct.toFixed(0)}%`+(eta&&!p.done?` — متبقٍ ~${Math.ceil(eta)}ث`:'');
+    if(p.done){
+      const job=state.job; state.job=null; $('#go').textContent='تصدير الفيديو';
+      if(p.error){ $('#status').textContent='فشل: '+p.error; return; }
+      let msg='اكتمل التصدير.';
+      if(p.lost) msg+=` إطارات لم يُكتشف فيها وجه: ${p.lost} من ${p.total}.`;
+      if(p.uncovered) msg+=` ⚠ ${p.uncovered} إطار بلا تغطية — راجع الفيديو أو ارفع «تثبيت عند الفقدان» إن كان الوجه ظاهراً.`;
+      $('#status').textContent=msg;
+      $('#dla').href='/api/download/'+job; $('#dl').style.display='block';
+      $('#view').innerHTML=`<video controls autoplay loop muted src="/api/download/${job}?inline=1"></video>`;
+      return;
+    }
+    setTimeout(poll,700);
+  };
+  poll();
+};
+
+async function buildStamps(){
+  const names=await (await fetch('/api/stamps')).json(), box=$('#stamps');
+  const mk=(name,el)=>{ const b=document.createElement('button'); b.type='button'; b.dataset.n=name;
+    b.setAttribute('aria-pressed',String(state.stamp===name)); b.appendChild(el);
+    b.onclick=()=>{ state.stamp=name; box.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.n===name))); schedule(); };
+    box.appendChild(b); };
+  const none=document.createElement('span'); none.textContent='بدون'; mk('',none); box.lastChild.classList.add('none');
+  names.filter(n=>/^s\d+$/.test(n)).forEach(n=>{ const i=new Image(); i.src='/stamps/'+n+'.png'; i.alt=n; mk(n,i); });
+}
+load(); sync(); buildStamps();
+</script>
+</body>
+</html>
